@@ -17,6 +17,8 @@
 #include <ESPmDNS.h>
 #include <Adafruit_NeoPixel.h>
 
+#include "p_defaults.h"
+
 /* Private define begin */
 // Pin to use to send signals to WS2812B
 // #define LED_PIN 6
@@ -24,9 +26,6 @@
 // Number of WS2812B LEDs attached to the Arduino
 #define LED_COUNT 54
 
-// WiFi Client Connection
-const char *ssid = "";
-const char *password = "";
 /* Private define end*/
 
 /* Private variables begin*/
@@ -58,6 +57,26 @@ void setup()
   strip.show();
   strip.clear(); // Set all pixel colors to 'off'
   delay(2000);
+  /* WiFi connection config begin */
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  if (MDNS.begin("esp32"))
+  {
+    Serial.println("MDNS responder started");
+  }
+
   colorWipe(strip.Color(0, 0, 255), 20);
   delay(5000);
 }
@@ -89,6 +108,27 @@ void loop()
 void handleRoot()
 {
   server.send(200, "text/plain", "awaiting user input");
+}
+
+/**
+ * @brief 404 Error Handler
+ *
+ */
+void handleNotFound()
+{
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++)
+  {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
 }
 
 /**
