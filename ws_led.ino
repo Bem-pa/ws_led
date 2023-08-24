@@ -25,7 +25,9 @@
 #define LED_PIN 32
 // Number of WS2812B LEDs attached to the Arduino
 #define LED_COUNT 54
-
+#define LED_MODE_SOLID 0x03
+#define LED_MODE_GRADIENT 0x04
+#define LED_MODE_BREATHING 0x05
 /* Private define end*/
 
 /* Private variables begin*/
@@ -45,6 +47,7 @@ int ledDir = 1;
 void setLedMode(int LEDMODE);
 void rainbow(int wait);
 void colorWipe(uint32_t color, int wait);
+void setGradient(uint32_t colors[]);
 // http specific functions
 void handleRoot();
 void handleNotFound();
@@ -57,7 +60,7 @@ void setup()
   strip.setBrightness(80); // Set BRIGHTNESS to about 4% (max = 255)
   strip.show();
   strip.clear(); // Set all pixel colors to 'off'
-  delay(2000);
+  delay(1000);
   /* WiFi connection config begin */
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
@@ -106,7 +109,7 @@ void loop()
   }
   */
   server.handleClient();
-  rainbow(10);
+  // rainbow(10);
 }
 
 /**
@@ -148,34 +151,93 @@ void handleNotFound()
 void handleUpdates()
 {
 
-  // check params
-  // int args = server.args();
-  // for (uint8_t i = 0; i < args; i++)
-  // {
-  //   Serial.print(server.argName(i));
-  //   Serial.print(": ");
-  //   Serial.println(server.arg(i));
-  // }
+  uint32_t decodedCommandData;
+  String mode;
+  int cmd_mode = LED_MODE_SOLID;
   // Read params
-  if (server.hasArg("col"))
+  if (server.hasArg("mode"))
   {
-    String col = server.arg("col");
-    Serial.println(col);
-    server.send(200, "text/plain", "Payload received");
+    String tmp = server.arg("mode");
+    if (tmp == "0x04")
+    {
+      cmd_mode = LED_MODE_GRADIENT;
+    }
   }
-  else
+  switch (cmd_mode)
   {
+  case LED_MODE_GRADIENT:
+    if (server.hasArg("len"))
+    {
+      String len_txt = server.arg("len");
+      int len;
+      const char *c_temp = len_txt.c_str();
+      len = (int)strtol(c_temp, NULL, 16);
+      uint32_t gradientColors[len];
+      for (int i = 0; i < len; i++)
+      {
+        String placeholder = "col";
+        if (server.hasArg(placeholder + String(i)))
+        {
+          String colorTxt = server.arg(placeholder + String(i));
+          const char *colorParser = colorTxt.c_str();
+          uint32_t currentColor = (uint32_t)strtol(colorParser, NULL, 16);
+          gradientColors[i] = currentColor;
+          Serial.println(currentColor, HEX);
+        }
+      }
+      setGradient(gradientColors, len);
+      server.send(200, "text/plain", "Ok");
+    }
+    else
+    {
+      server.send(500, "text/plain", "Expected 'len' Parameter");
+    }
+
+    break;
+  case LED_MODE_SOLID:
+    if (server.hasArg("col"))
+    {
+      String commandData = "";
+      commandData = server.arg("col");
+      Serial.print(commandData);
+      const char *c_temp = commandData.c_str();
+      long long temp = strtoll(c_temp, NULL, 16);
+      int b = temp & 0xFF;
+      // decoded
+      temp = temp >> 8;
+      int g = temp & 0xFF;
+      temp = temp >> 8;
+      int r = temp & 0xFF;
+      uint32_t parsedColor = strip.Color(r, g, b);
+      Serial.print(" ");
+      Serial.println(parsedColor, HEX);
+      for (int i = 0; i < LED_COUNT; i++)
+      {
+        strip.setPixelColor(i, parsedColor);
+      }
+      server.send(200, "text/plain", "Ok");
+      strip.show();
+    }
+    else
+    {
+      Serial.println("no data");
+      server.send(500, "text/plain", "Unable to process data");
+    }
+    break;
+
+  default:
     Serial.println("no data");
     server.send(500, "text/plain", "Unable to process data");
+    break;
   }
+
   String debug_message = (server.method() == HTTP_GET) ? "GET" : "POST";
   debug_message += "\t\t" + server.uri();
   Serial.println(debug_message);
-  // work on debug string for routes later
 }
 
 /**
- * @brief Creates a rainbow sync across LED arra
+ * @brief Creates a rainbow sync across LED array
  *
  * @param wait
  * @retval None
@@ -225,5 +287,29 @@ void colorWipe(uint32_t color, int wait)
     strip.show();
 
     delay(wait);
+  }
+}
+
+void setGradient(uint32_t colors[], int len)
+{
+  // int len = sizeof(colors) / sizeof(uint32_t);
+  int mid = LED_COUNT / 2;
+  int opp = mid;
+  int steps = LED_COUNT / len / 2;
+  // eg len = 4
+  for (int i = mid; i < LED_COUNT; i++)
+  {
+    // int colorSelector = len - 1 - ((LED_COUNT - i) % len);
+    int colorSelector = (i - mid) / 6;
+    if (colorSelector > len - 1)
+    {
+      colorSelector = len - 1;
+    }
+    strip.setPixelColor(i, colors[colorSelector]);
+    if (opp > 0)
+      opp--;
+    strip.setPixelColor(opp, colors[colorSelector]);
+    strip.show();
+    delay(20);
   }
 }

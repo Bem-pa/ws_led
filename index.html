@@ -5,20 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Light Controller</title>
     <style>
+      html {
+        margin: 0;
+        padding: 0;
+        font-family: 'Courier New', Courier, monospace;
+      }
       .colorPickerBG {
+        margin: 0;
+        padding: 0;
         height: 100vh;
-        background-color: blue;
+        background-color: #18443f;
+        overflow-y: hidden;
+      }
+      .colorPickerForm {
+        background-color: rgba(255, 255, 255, 0.3);
+        height: 100%;
+        width: 100%;
+      }
+      #color-picker {
+        width: 60%;
+        height: 40%;
+      }
+      .pickergroup {
+        width: 100%;
+        text-align: center;
+        height: 100%;
+      }
+      .colorPickerLabel {
+        font-size: 2rem;
+      }
+      .btn {
+        font-size: 1.3rem;
+        font-weight: bolder;
+        border: 2px solid black;
+        border-radius: 2px;
+        padding: 5px;
+        background-color: white;
+      }
+      .btn:hover {
+        /* border-color: white; */
+        background-color: black;
+        color: #fff;
+      }
+      .btn-rainbow {
+        /* color: black; */
+        background: linear-gradient(
+          to right,
+          #ff6d60,
+          #f7d060,
+          #f3e99f,
+          #98d8aa
+        );
+      }
+      .btn-sunset {
+        background: linear-gradient(
+          to right,
+          #881874,
+          #b71375,
+          #fc4f00,
+          #f79540
+        );
       }
     </style>
     <script>
       window.onload = function () {
-        let colorPicker = document.querySelector('#color-picker');
+        const colorPicker = document.querySelector('#color-picker');
+        const sunsetBtn = document.querySelector('#btn-sunset');
+        const bg = document.querySelector('#colorPickerBG');
         const defaultColor = '#18443f';
         colorPicker.value = defaultColor;
         colorPicker.addEventListener(
           'input',
           function (e) {
-            const bg = document.querySelector('#colorPickerBG');
             const val = e.target.value;
             if (bg) {
               bg.style.background = val;
@@ -28,11 +86,27 @@
           },
           false
         );
+        sunsetBtn.addEventListener(
+          'click',
+          async function (e) {
+            bg.style.backgroundImage =
+              'linear-gradient(to right,  #881874,#b71375,#fc4f00,#f79540)';
+            const uri = `/update?mode=0x04&col0=881874&col1=b71375&col2=fc4f00&col3=f79540`;
+            try {
+              const response = await fetch(uri);
+              const message = await response.text();
+              console.log(message);
+            } catch (e) {
+              console.error(e);
+            }
+          },
+          false
+        );
       };
       async function sendColor(val) {
         try {
           const val_sanitized = String(val).replace('#', '');
-          const fetchStr = `/update?col="${val_sanitized}"`;
+          const fetchStr = `/update?col=${val_sanitized}`;
           console.log(fetchStr);
           const response = await fetch(fetchStr);
           const message = await response.text();
@@ -44,10 +118,17 @@
       }
     </script>
   </head>
-  <body>
-    <div class="colorPickerBG" id="colorPickerBG">
-      <label for="color-picker">Color:</label>
-      <input type="color" value="#18443f" id="color-picker" />
+  <body class="colorPickerBG" id="colorPickerBG">
+    <div class="colorPickerForm">
+      <div class="pickergroup">
+        <label for="color-picker" class="colorPickerLabel">Pick a Color</label
+        ><br />
+        <input type="color" value="#18443f" id="color-picker" />
+        <hr />
+        <br />
+        <span class="btn btn-rainbow" id="btn-rainbow">Rainbow</span>
+        <span class="btn btn-sunset" id="btn-sunset">Sunset</span>
+      </div>
     </div>
   </body>
 </html>
