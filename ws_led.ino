@@ -48,6 +48,7 @@ void colorWipe(uint32_t color, int wait);
 // http specific functions
 void handleRoot();
 void handleNotFound();
+void handleUpdates();
 /* Private function prototypes end */
 
 void setup()
@@ -77,6 +78,12 @@ void setup()
     Serial.println("MDNS responder started");
   }
 
+  server.onNotFound(handleNotFound); // 404
+  server.on("/", handleRoot);        // root path
+  server.on("/update", handleUpdates);
+  server.begin();
+
+  Serial.println("Server Started");
   colorWipe(strip.Color(0, 0, 255), 20);
   delay(5000);
 }
@@ -98,6 +105,7 @@ void loop()
     delay(500); // Pause before next pass through loop
   }
   */
+  server.handleClient();
   rainbow(10);
 }
 
@@ -107,7 +115,9 @@ void loop()
  */
 void handleRoot()
 {
-  server.send(200, "text/plain", "awaiting user input");
+  String debug_message = (server.method() == HTTP_GET) ? "GET" : "POST";
+  debug_message += "\t\t" + server.uri();
+  server.send(200, "text/html", indexHtml);
 }
 
 /**
@@ -129,6 +139,39 @@ void handleNotFound()
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/plain", message);
+}
+
+/**
+ * @brief Handle updates from client interface
+ *
+ */
+void handleUpdates()
+{
+
+  // check params
+  // int args = server.args();
+  // for (uint8_t i = 0; i < args; i++)
+  // {
+  //   Serial.print(server.argName(i));
+  //   Serial.print(": ");
+  //   Serial.println(server.arg(i));
+  // }
+  // Read params
+  if (server.hasArg("col"))
+  {
+    String col = server.arg("col");
+    Serial.println(col);
+    server.send(200, "text/plain", "Payload received");
+  }
+  else
+  {
+    Serial.println("no data");
+    server.send(500, "text/plain", "Unable to process data");
+  }
+  String debug_message = (server.method() == HTTP_GET) ? "GET" : "POST";
+  debug_message += "\t\t" + server.uri();
+  Serial.println(debug_message);
+  // work on debug string for routes later
 }
 
 /**

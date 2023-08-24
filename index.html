@@ -4,6 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Light Controller</title>
+    <style>
+      .colorPickerBG {
+        height: 100vh;
+        background-color: blue;
+      }
+    </style>
+    <script>
+      window.onload = function () {
+        let colorPicker = document.querySelector('#color-picker');
+        const defaultColor = '#18443f';
+        colorPicker.value = defaultColor;
+        colorPicker.addEventListener(
+          'input',
+          function (e) {
+            const bg = document.querySelector('#colorPickerBG');
+            const val = e.target.value;
+            if (bg) {
+              bg.style.background = val;
+              sendColor(val);
+              // console.log(e.target.value);
+            }
+          },
+          false
+        );
+      };
+      async function sendColor(val) {
+        try {
+          const val_sanitized = String(val).replace('#', '');
+          const fetchStr = `/update?col="${val_sanitized}"`;
+          console.log(fetchStr);
+          const response = await fetch(fetchStr);
+          const message = await response.text();
+          console.log(message);
+        } catch (e) {
+          console.error(e);
+        }
+        // const
+      }
+    </script>
   </head>
-  <body></body>
+  <body>
+    <div class="colorPickerBG" id="colorPickerBG">
+      <label for="color-picker">Color:</label>
+      <input type="color" value="#18443f" id="color-picker" />
+    </div>
+  </body>
 </html>
