@@ -41,6 +41,14 @@ unsigned long long lastUpdateLED;
 long firstPixelHue = 0;
 int ledDir = 1;
 
+// Static IP config
+IPAddress local_IP(192, 168, 137, 173);
+IPAddress gateway(192, 168, 1, 1);
+
+IPAddress subnet(255, 255, 255, 0);
+IPAddress primaryDNS(8, 8, 8, 8);
+IPAddress secondaryDNS(8, 8, 4, 4);
+
 /* Private variables end */
 
 /* Private function prototypes begin */
@@ -57,13 +65,18 @@ void handleUpdates();
 void setup()
 {
   strip.begin();           // Initialize NeoPixel object
-  strip.setBrightness(80); // Set BRIGHTNESS to about 4% (max = 255)
+  strip.setBrightness(20); // Set BRIGHTNESS to about 4% (max = 255)
   strip.show();
   strip.clear(); // Set all pixel colors to 'off'
   delay(1000);
   /* WiFi connection config begin */
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
+  // Create static IP address
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
+  {
+    Serial.println("STA Failed to configure");
+  }
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
   {
